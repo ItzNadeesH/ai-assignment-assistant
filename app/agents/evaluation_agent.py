@@ -1,19 +1,20 @@
+from typing import Tuple
+
 from tools.file_writer import write_to_file
 from tools.code_executor import run_python_code
 from state.state import AgentState
 from config.llm_config import llm
 
-def evaluation_agent(state: AgentState):
 
-    solution = state.get("solution", "")
+def _split_solution(solution: str) -> Tuple[str, str]:
+    """Split `solution` into a content part and a code part.
 
-    # 🧠 Split Content + Code (same format as solution agent)
-    content_part = ""
-    code_part = ""
-
+    Preserves original behavior: if no `Code:` marker is present, returns
+    the full solution as content and `"NONE"` for the code part.
+    """
     try:
         if "Code:" in solution:
-            parts = solution.split("Code:")
+            parts = solution.split("Code:", 1)
             content_part = parts[0].replace("Content:", "").strip()
             code_part = parts[1].strip()
         else:
@@ -22,8 +23,27 @@ def evaluation_agent(state: AgentState):
     except Exception:
         content_part = solution
         code_part = "NONE"
+    return content_part, code_part
 
-    # 🧠 Evaluate Content
+
+def _llm_invoke(prompt: str) -> str:
+    """Invoke the configured LLM and return a string result safely."""
+    res = llm.invoke(prompt)
+    return getattr(res, "content", str(res))
+
+
+def evaluation_agent(state: AgentState):
+    """Evaluate a solution stored in `state['solution']`.
+
+    This function was refactored for clarity only; behavior remains the same.
+    """
+
+    solution = state.get("solution", "")
+
+    # Split Content + Code (same format as solution agent)
+    content_part, code_part = _split_solution(solution)
+
+    # Build content evaluation prompt
     content_prompt = f"""
     Evaluate the following theoretical answer.
 
@@ -37,15 +57,13 @@ def evaluation_agent(state: AgentState):
     {content_part}
     """
 
-    content_res = llm.invoke(content_prompt)
-    content_eval = content_res.content if hasattr(content_res, "content") else str(content_res)
+    content_eval = _llm_invoke(content_prompt)
 
-    # 🧠 Evaluate Code (only if exists)
+    # Evaluate Code (only if exists)
     code_eval = "No code provided."
 
     if code_part and code_part != "NONE":
-
-        # 🛠 Execute code for validation
+        # Execute code for validation and log the result
         execution_result = run_python_code(code_part)
         state["logs"].append(f"[TOOL] Code Execution (Evaluation): {execution_result}")
 
@@ -65,10 +83,9 @@ def evaluation_agent(state: AgentState):
         {code_part}
         """
 
-        code_res = llm.invoke(code_prompt)
-        code_eval = code_res.content if hasattr(code_res, "content") else str(code_res)
+        code_eval = _llm_invoke(code_prompt)
 
-    # 📊 Combine final evaluation
+    # Combine final evaluation
     final_evaluation = f"""
     ===== EVALUATION REPORT =====
 
@@ -80,7 +97,7 @@ def evaluation_agent(state: AgentState):
     state["evaluation"] = final_evaluation
     state["logs"].append(f"Evaluation: {final_evaluation}")
 
-    # 🛠 Save evaluation report
+    # Save evaluation report
     file_result = write_to_file("evaluation.txt", final_evaluation)
     state["logs"].append(f"[TOOL] File Writer: {file_result}")
 
