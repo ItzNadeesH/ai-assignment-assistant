@@ -1,0 +1,42 @@
+**Content**
+
+1. Fundamental Concepts in Neural Networks:
+
+Neural networks consist of interconnected nodes or "neurons" that process and transmit information. The fundamental components are:
+	* Weights: numerical values assigned to each connection between neurons.
+	* Bias: an offset value added to the weighted sum of inputs.
+	* Activation functions: mathematical operations applied to the output of a neuron, determining its output.
+
+2. ReLU and Leaky ReLU:
+
+ReLU (Rectified Linear Unit) is an activation function defined as:
+
+f(z) = max(0, z)
+
+For positive input values (z ≥ 0), ReLU outputs the same value. For negative input values (z < 0), ReLU sets the output to zero.
+
+Leaky ReLU is a modified version of ReLU that introduces a small leak or "drift" in the activation function:
+
+f(z) = max(0, z + alpha \* min(0, z))
+
+where alpha is a hyperparameter controlling the amount of leakage. This modification helps prevent the vanishing gradients problem.
+
+3. Behavior for Negative Values:
+
+ReLU handles negative input values by setting them to zero. This can cause problems when training neural networks, as the gradient of ReLU with respect to its inputs becomes zero for any negative input value. This issue is known as "Dying ReLU."
+
+To address this problem:
+	* Use Leaky ReLU instead of standard ReLU.
+	* Add noise or stochasticity to the input data.
+
+4. Neural Network Design:
+
+For binary classification (Pass/Fail), we can design a simple feedforward neural network with three layers: input, hidden, and output.
+
+Layer 1 (Input): Study hours, attendance, assignment marks
+Layer 2 (Hidden): ReLU activation function applied to the weighted sum of inputs
+Layer 3 (Output): Sigmoid or softmax activation function for binary classification
+
+**Code**
+
+NONE
